@@ -2,36 +2,38 @@
 //        Constants
 // ============================
 
-const MAX_CHOSEN_COINS = 5;
+const MAX_CHOSEN_COINS = 2;
 const DIGITS_AFTER_DECIMAL = 3;
 const MILI_TO_SEC_DIVISOR = 60000; // miliseconds
 const MINUTES_TO_FETCH_INFO_AGAIN = 2;
 
 const ALL_COINS_API_URL = 'https://api.coingecko.com/api/v3/coins/list';
 const ONE_COIN_API_URL = 'https://api.coingecko.com/api/v3/coins/';// + {id}
-const MULTI_PRICE_API_URL = 'https://min-api.cryptocompare.com/data/pricemulti?tsyms=USD,EUR,ILS&';// + {fsyms=BTC,ETH&'}
+const ONE_COIN_API_PARAMS = 'localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false'
+const MULTI_PRICE_API_URL = 'https://min-api.cryptocompare.com/data/pricemulti?tsyms=USD&fsyms=';// + {=BTC,ETH&'}
+
+const API_KEY = '2027117d4ad753779043f2eb926b32ed4e72a4abcc9280a0bca04e64c4422f8b';
 
 // ============================
 //        Global Variables
 // ============================
 
 let coins = [];
-let chosenCoinsSet = new Set();
+let chosenCoinsMap = new Map();
 let moreInfoMap = new Map();
 
 
 const coinsLimit = 20;// Dev related
 
 
-
-
-$().ready(() => {
-  window.localStorage.clear();// DELETE ON SENDING PROJECT!
-  getCoins();
-  displayCoins();
-  switchListener();
-  moreInfoListener();
-  frontLinkListener() //Change Name
+$(() => {
+  // window.localStorage.clear();// DELETE ON SENDING PROJECT!
+  // getCoins();
+  populateCoins();
+  cardToggleHandler();
+  moreInfoHandler();
+  frontLinkHandler(); //Change Name
+  // pageHandler();
 });
 
 class Coin {
@@ -48,19 +50,15 @@ class Coin {
 
     let elapsed = (now - this.created) / MILI_TO_SEC_DIVISOR;// elapsed time in milliseconds converted to seconds
 
-    if (elapsed < MINUTES_TO_FETCH_INFO_AGAIN) {
-      return false
-    }
-
-    return true
+    return elapsed >= MINUTES_TO_FETCH_INFO_AGAIN;
   }
 }
 
 // ============================
-//        Event Listeners
+//        Event Handlers
 // ============================
 
-function moreInfoListener() {
+function moreInfoHandler() {
   $('.card-info-link').click(event => {
     let id = event.target.dataset.id;
 
@@ -75,7 +73,7 @@ function moreInfoListener() {
         if (coin.isTimeExpired()) {
           coin = getMoreInfo(id)
         } else {
-          displayMoreInfo(coin, true)
+          populateMoreInfo(coin, true)
         }
       } else {
         getMoreInfo(id)
@@ -86,7 +84,7 @@ function moreInfoListener() {
   })
 }
 
-function frontLinkListener() {
+function frontLinkHandler() {
   $('.card-general-link').click(event => {
     let id = event.target.dataset.id;
 
@@ -95,24 +93,39 @@ function frontLinkListener() {
   })
 }
 
-function switchListener() {
+function cardToggleHandler() {
   $('.switch').change(event => {
-    let id = event.target.dataset.id;
-
-    // Set Version
+    let coin = {
+      id: event.target.dataset.id,
+      name: event.target.dataset.name,
+      symbol: event.target.dataset.symbol
+    }
 
     // add to chosenCoins
     if (event.target.checked) {
-      if (chosenCoinsSet.size === 5) {
+      if (chosenCoinsMap.size === MAX_CHOSEN_COINS) {
         event.target.checked = false;
-        alert('Too many') // CHANGE THIS
+        populateCoinsModal();
       } else {
-        chosenCoinsSet.add(id)
+        chosenCoinsMap.set(coin.id, coin);
+        console.log(chosenCoinsMap)
       }
       // remove from chosenCoinsSet
     } else {
-      chosenCoinsSet.delete(id)
+      chosenCoinsMap.delete(coin.id);
+      console.log(chosenCoinsMap)
     }
+  })
+}
+
+function modalDeleteHandler() {
+  $('.modal-delete').click(event => {
+    let id = event.target.dataset.id;
+    const coinToggleElement = $('#' + id).find('.switch').find('input');
+    coinToggleElement.prop('checked', false);
+    chosenCoinsMap.delete(id);
+    console.log(chosenCoinsMap);
+    populateCoinsModal()
   })
 }
 
@@ -128,8 +141,8 @@ function getCoins() {
     async: false,
     success: function (data) {
       coins = data;
-      console.log(coins)
-      // window.localStorage.coins = JSON.stringify(data)
+      // console.log(coins)
+      window.localStorage.coins = JSON.stringify(data)
     },
     error: function (error) {
       console.log("error : ", error)
@@ -138,7 +151,7 @@ function getCoins() {
 }
 
 function getMoreInfo(id) {
-  let url = `${ONE_COIN_API_URL}${id}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false`;
+  let url = `${ONE_COIN_API_URL}${id}?${ONE_COIN_API_PARAMS}`;
   let newCoin = {};
 
   $.ajax({
@@ -165,7 +178,7 @@ function getMoreInfo(id) {
       console.log("error : ", error)
     },
     complete: () => {
-      displayMoreInfo(newCoin, false);
+      populateMoreInfo(newCoin, false);
       moreInfoMap.set(id, newCoin);
       window.localStorage.moreInfoMap = JSON.stringify(Array.from(moreInfoMap));
       return newCoin
@@ -173,22 +186,73 @@ function getMoreInfo(id) {
   })
 }
 
+function getCoinImage(id) {
+  let url = `${ONE_COIN_API_URL}${id}?${ONE_COIN_API_PARAMS}`;
+  let image = '';
+
+  $.ajax({
+    type: 'GET',
+    datatype: 'json',
+    url: url,
+    async: false,
+    success: (coin) => {
+      console.log(coin)
+      image = coin.image.small;
+    },
+    error: (error) => {
+      console.log("error : ", error)
+    },
+    complete: () => {
+      return image;
+    }
+  })
+}
+
+function getCoinsPrices() {
+
+  let url = `${MULTI_PRICE_API_URL}`;
+
+  for (let coin of chosenCoinsSet) {
+    url += `${coin},`
+  }
+
+  //
+  // $.ajax({
+  //   type: 'GET',
+  //   datatype: 'json',
+  //   url: url,
+  //   async: true,
+  //   beforeSend: () => {
+  //
+  //   },
+  //   success: (data) => {
+  //
+  //   },
+  //   error: (error) => {
+  //     console.log("error : ", error)
+  //   },
+  //   complete: () => {
+  //     return data
+  //   }
+  // })
+}
+
 // ============================
 //        Print Functions
 // ============================
 
-function displayCoins() {
+function populateCoins() {
   $('#home').html('');
 
   let str = ``;
 
   var BreakException = {};
 
-  // let coinsLocal = JSON.parse(window.localStorage.coins) // Later change to all coins from API
+  let coinsLocal = JSON.parse(window.localStorage.coins) // Later change to all coins from API
 
   try {
-    // coinsLocal.forEach((coin, index) => {
-    coins.forEach((coin, index) => {
+    coinsLocal.forEach((coin, index) => {
+      // coins.forEach((coin, index) => {
       if (index === coinsLimit) throw BreakException;
 
       str += `<div class="col-sm-4 p-0 m-0">`;
@@ -206,7 +270,7 @@ function displayCoins() {
       str += `<div>`;
       str += `<li class="nav-item">`;
       str += `<label class="switch">`;
-      str += `<input data-id="${coin.id}" type="checkbox">`;
+      str += `<input data-id="${coin.id}" data-name="${coin.name}" data-symbol="${coin.symbol}" type="checkbox">`;
       str += `<span class="slider round"></span>`;
       str += `</label>`;
       str += `</li>`;
@@ -233,9 +297,9 @@ function displayCoins() {
   $('#home').append(str)
 }
 
-function displayMoreInfo(coin, isLocal) {
+function populateMoreInfo(coin, isLocal) {
   let str = ``;
-  let moreInfoDiv = document.getElementById(coin.id).querySelector('.card-body').querySelector('.card-body-info');
+  const moreInfoDiv = document.getElementById(coin.id).querySelector('.card-body').querySelector('.card-body-info');
 
   str += `<div>`;
   str += `<img class="p-2" src="${coin.image}" alt="thumbnail">`;
@@ -256,6 +320,22 @@ function displayMoreInfo(coin, isLocal) {
   } else {
     toggleCardContent(coin.id, 'info')
   }
+}
+
+function populateCoinsModal() {
+  $('.modal-body').html('');
+  let str = ``;
+
+  for (let [id, coin] of chosenCoinsMap) {
+    str += `<div class="modal-row d-flex justify-content-between">`;
+    str += `<p>${coin.name}</p>`;
+    str += `<i class="modal-delete far fa-trash-alt text-danger" data-id="${id}"></i>`;
+    str += `</div>`;
+  }
+
+  $('.modal-body').html(str);
+  modalDeleteHandler()
+  $('#chosenCoinsModal').modal('show')
 }
 
 // ============================
@@ -321,6 +401,28 @@ function attachCoinPrototype() {
   })
 }
 
+// ============================
+//        Coins Chart
+// ============================
+
+function createChart() {
+  let data = getCoinsPrices();
+  $("#chartContainer").CanvasJSChart({ //Pass chart options
+    data: [
+      {
+        type: "splineArea", //change it to column, spline, line, pie, etc
+        dataPoints: [
+          {x: 10, y: 10},
+          {x: 20, y: 14},
+          {x: 30, y: 18},
+          {x: 40, y: 22},
+          {x: 50, y: 18},
+          {x: 60, y: 28}
+        ]
+      }
+    ]
+  });
+}
 
 // Array Version
 
