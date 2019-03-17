@@ -33,6 +33,7 @@ $(() => {
   cardToggleHandler();
   moreInfoHandler();
   frontLinkHandler(); //Change Name
+  routesLinksHandler();
   // pageHandler();
 });
 
@@ -58,7 +59,7 @@ class Coin {
 //        Event Handlers
 // ============================
 
-function moreInfoHandler() {
+const moreInfoHandler = () => {
   $('.card-info-link').click(event => {
     let id = event.target.dataset.id;
 
@@ -82,18 +83,18 @@ function moreInfoHandler() {
       getMoreInfo(id)
     }
   })
-}
+};
 
-function frontLinkHandler() {
+const frontLinkHandler = () => {
   $('.card-general-link').click(event => {
     let id = event.target.dataset.id;
 
     toggleCardTabs(id);
     toggleCardContent(id, 'front')
   })
-}
+};
 
-function cardToggleHandler() {
+const cardToggleHandler = () => {
   $('.switch').change(event => {
     let coin = {
       id: event.target.dataset.id,
@@ -116,9 +117,9 @@ function cardToggleHandler() {
       console.log(chosenCoinsMap)
     }
   })
-}
+};
 
-function modalDeleteHandler() {
+const modalDeleteHandler = () => {
   $('.modal-delete').click(event => {
     let id = event.target.dataset.id;
     const coinToggleElement = $('#' + id).find('.switch').find('input');
@@ -127,7 +128,36 @@ function modalDeleteHandler() {
     console.log(chosenCoinsMap);
     populateCoinsModal()
   })
-}
+};
+
+const routesLinksHandler = () => {
+  $('.route-link').click(event => {
+    console.log("HERE");
+    let route = event.target.dataset.route;
+    console.log(route);
+
+    switch(route){
+      case 'home':
+        $('#home').removeClass('d-none').addClass('d-flex');
+        $('#live-reports').removeClass('d-flex').addClass('d-none');
+        $('#about').removeClass('d-flex').addClass('d-none');
+        break;
+      case 'live-reports':
+        $('#home').removeClass('d-flex').addClass('d-none');
+        $('#live-reports').removeClass('d-none').addClass('d-flex');
+        $('#about').removeClass('d-flex').addClass('d-none');
+        createChart();
+        break;
+      case 'about':
+        $('#home').removeClass('d-flex').addClass('d-none');
+        $('#live-reports').removeClass('d-flex').addClass('d-none');
+        $('#about').removeClass('d-none').addClass('d-flex');
+        break;
+      default:
+        break;
+    }
+  })
+};
 
 // ============================
 //          AJAX Calls
@@ -186,55 +216,31 @@ function getMoreInfo(id) {
   })
 }
 
-function getCoinImage(id) {
-  let url = `${ONE_COIN_API_URL}${id}?${ONE_COIN_API_PARAMS}`;
-  let image = '';
+function getCoinsRates() {
+
+  let url = `${MULTI_PRICE_API_URL}`;
 
   $.ajax({
     type: 'GET',
     datatype: 'json',
     url: url,
-    async: false,
-    success: (coin) => {
-      console.log(coin)
-      image = coin.image.small;
+    async: true,
+    beforeSend: () => {
+      for (let coin of chosenCoinsMap.values()) {
+        console.log(coin)
+        url += `${coin.symbol},`
+      }
+    },
+    success: (data) => {
+      console.log(data)
     },
     error: (error) => {
       console.log("error : ", error)
     },
     complete: () => {
-      return image;
+      return data
     }
   })
-}
-
-function getCoinsPrices() {
-
-  let url = `${MULTI_PRICE_API_URL}`;
-
-  for (let coin of chosenCoinsSet) {
-    url += `${coin},`
-  }
-
-  //
-  // $.ajax({
-  //   type: 'GET',
-  //   datatype: 'json',
-  //   url: url,
-  //   async: true,
-  //   beforeSend: () => {
-  //
-  //   },
-  //   success: (data) => {
-  //
-  //   },
-  //   error: (error) => {
-  //     console.log("error : ", error)
-  //   },
-  //   complete: () => {
-  //     return data
-  //   }
-  // })
 }
 
 // ============================
@@ -406,35 +412,84 @@ function attachCoinPrototype() {
 // ============================
 
 function createChart() {
-  let data = getCoinsPrices();
-  $("#chartContainer").CanvasJSChart({ //Pass chart options
-    data: [
-      {
-        type: "splineArea", //change it to column, spline, line, pie, etc
-        dataPoints: [
-          {x: 10, y: 10},
-          {x: 20, y: 14},
-          {x: 30, y: 18},
-          {x: 40, y: 22},
-          {x: 50, y: 18},
-          {x: 60, y: 28}
-        ]
-      }
-    ]
-  });
+  let data = [];
+  let subtitle = '';
+
+  //init data
+  for(let coin of chosenCoinsMap) {
+    data.push({
+      type: "spline",
+      name: `${coin}`,
+      color: getRandomColor(),
+      showInLegend: true,
+      xValueFormatString: "HH:mm:ss",
+      yValueFormatString: "#,##0$",
+      dataPoints: []
+    });
+    subtitle += `${coin},`
+  }
+
+  var options = {
+    exportEnabled: true,
+    animationEnabled: true,
+    title: {
+      text: "Chosen Coins Rates"
+    },
+    subtitles: [{
+      text: subtitle
+    }],
+    axisX: {
+      title: "Time"
+    },
+    axisY: {
+      title: "Coin Value",
+      titleFontColor: "#4F81BC",
+      lineColor: "#4F81BC",
+      labelFontColor: "#4F81BC",
+      tickColor: "#4F81BC",
+      includeZero: false
+    },
+    toolTip: {
+      shared: true
+    },
+    legend: {
+      // cursor: "pointer",
+      // itemclick: toggleDataSeries
+    },
+    data: data
+  };
+  $("#live-reports").CanvasJSChart(options);
+
+  updateData();
+
+  setInterval(updateData, 2000);
 }
 
-// Array Version
 
-// if (event.target.checked) {
-//     if (chosenCoins.length === 5) {
-//         event.target.checked = false
-//         alert('Too many') // CHANGE THIS
-//     } else {
-//         chosenCoins.push(id)
-//     }
-//     // remove from chosenCoins
-// } else {
-//     let removeIdx = chosenCoins.indexOf(id)
-//     chosenCoins.splice(removeIdx, 1)
-// }
+const updateData = () => {
+//  chart.options.data[0].dataPoints.push
+  let time = new Date();
+  let i = 0;
+  let data = $("#live-reports").CanvasJSChart().options.data;
+  let coinsRates = getCoinsRates();
+  for (let [key, value] of Object.entries(coinsRates)) {
+    if (coinsRates.hasOwnProperty(key)) {
+      data[i++].push({
+        x: time,
+        y: value['usd']
+      })
+    }
+  }
+
+
+
+}
+
+// Returns RGB random color
+function getRandomColor(){
+  var r = Math.floor(Math.random() * 256)
+  var g = Math.floor(Math.random() * 256)
+  var b = Math.floor(Math.random() * 256)
+
+  return "rgb(" + r + ", " + g + ", " + b + ")"
+}
