@@ -9,11 +9,8 @@ const MINUTES_TO_FETCH_INFO_AGAIN = 2;
 
 const ALL_COINS_API_URL = 'https://api.coingecko.com/api/v3/coins/list';
 const ONE_COIN_API_URL = 'https://api.coingecko.com/api/v3/coins/';// + {id}
-const ONE_COIN_API_PARAMS = 'localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false'
+const ONE_COIN_API_PARAMS = 'localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false';
 const MULTI_PRICE_API_URL = 'https://min-api.cryptocompare.com/data/pricemulti?tsyms=USD&fsyms=';// + {=BTC,ETH&'}
-
-const API_KEY = '2027117d4ad753779043f2eb926b32ed4e72a4abcc9280a0bca04e64c4422f8b';
-
 // ============================
 //        Global Variables
 // ============================
@@ -36,6 +33,7 @@ $(() => {
     moreInfoHandler();
     frontLinkHandler(); //Change Name
     routesLinksHandler();
+    searchCoin()
 });
 
 class Coin {
@@ -281,7 +279,7 @@ function populateCoins() {
             if (index === coinsLimit) throw BreakException;
 
             str += `<div class="col-sm-4 p-0 m-0">`;
-            str += `<div id="${coin.id}" class="card text-center text-primary border-primary m-2">`;
+            str += `<div id="${coin.symbol}" class="card text-center text-primary border-primary m-2">`;
             str += `<div class="card-header">`;
             str += `<ul class="nav nav-tabs card-header-tabs justify-content-between">`;
             str += `<div class="d-flex">`;
@@ -380,7 +378,7 @@ function toggleCardContent(id, show) {
             frontDiv.classList.add('d-flex');
             infoDiv.classList.add('d-none');
             // spinner.classList.add('d-none')
-            break
+            break;
         case 'info':
             // frontDiv.classList.remove('d-flex')
             infoDiv.classList.remove('d-none');
@@ -388,7 +386,7 @@ function toggleCardContent(id, show) {
             // frontDiv.classList.add('d-none')
             infoDiv.classList.add('d-flex');
             spinner.classList.add('d-none');
-            break
+            break;
         case 'spinner':
             frontDiv.classList.remove('d-flex');
             // infoDiv.classList.remove('d-flex')
@@ -396,7 +394,7 @@ function toggleCardContent(id, show) {
             frontDiv.classList.add('d-none');
             // infoDiv.classList.add('d-none')
             spinner.classList.add('d-flex-inline');
-            break
+            break;
         case 'info-exist':
             frontDiv.classList.remove('d-flex');
             infoDiv.classList.remove('d-none');
@@ -404,8 +402,9 @@ function toggleCardContent(id, show) {
             frontDiv.classList.add('d-none');
             infoDiv.classList.add('d-flex');
         // spinner.classList.add('d-none')
+            break;
         default:
-            break
+            break;
     }
 }
 
@@ -431,11 +430,7 @@ function attachCoinPrototype() {
 // ============================
 
 function createChart() {
-    if(chart){
-        chart.destroy();
-    }
-
-    document.getElementById('coins-chart').classList.remove('d-none').add('d-block');
+    $('#live-reports').html('<canvas id="coins-chart" width="800" height="450"></canvas>')
     var ctx = document.getElementById('coins-chart').getContext('2d');
 
 
@@ -455,7 +450,7 @@ function createChart() {
             },
             title: {
                 display: true,
-                text: 'Chosen Coins Rates'
+                text: 'Chosen Coins Rates - USD'
             }
         }
     });
@@ -503,17 +498,27 @@ const updateChartData = (chart, data) => {
 };
 
 const noCoinsSelected = () => {
-    let str = ``
-    str += `<div class='d-flex justify-content-center align-items-center w-50'>`;
-    str += `<div class="jumbotron">`;
-    str += `<h1 class="display-4">No Coins Selected</h1>`;
-    str += `<hr class="my-4">`;
-    str += `<p>Please return to Home and select coins</p>`;
-    str += `</div>`;
-    str += `</div>`;
+    let str = '';
 
-    $('#live-reports').append(str);
-}
+    str += '<div class="d-flex justify-content-center align-items-center w-50">';
+    str += '<div class="jumbotron border border-danger">';
+    str += '<h1 class="display-4">No Coins Selected</h1>';
+    str += '<hr class="my-4">';
+    str += '<p>Please return to Home and select coins</p>';
+    str += '</div>';
+    str += '</div>';
+
+    $('#live-reports').html(str);
+};
+
+const searchCoin = () => {
+    $("#search-btn").click(function() {
+        let value = $('#search-box').val().toLowerCase();
+        $("#home .card").filter(function() {
+            $(this).toggle($(this).attr('id').toLowerCase().indexOf(value) > -1)
+        });
+    });
+};
 
 // Returns RGB random color
 function getRandomColor() {
