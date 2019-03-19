@@ -25,7 +25,7 @@
 
 <div class="container">
     <ul class="nav nav-pills justify-content-between mb-3">
-        <div class="d-flex">
+        <div class="d-flex col-xs-12">
             <li class="nav-item">
                 <a id="home-link" class="nav-link active route-link" data-route="home">Home</a>
             </li>
@@ -37,21 +37,43 @@
             </li>
         </div>
 
-        <div>
+        <div col-xs-12>
             <form class="form-inline my-2 my-lg-0">
-                <input id="search-box" class="form-control mr-sm-2" type="search" placeholder="Search">
-                <button id="search-btn" class="btn btn-outline-success my-2 my-sm-0" type="button">Search</button>
+                <input id="search-box" class="form-control mr-sm-2" value="" type="search" placeholder="Search">
+                <button id="search-btn" class="btn btn-outline-info my-2 my-sm-0" type="button">Search</button>
             </form>
         </div>
     </ul>
 
     <section class="page-display">
-        <!--<div id="progress-bar d-none"></div>-->
-        <div id="home" class="row d-flex"></div>
+        <div id="home-loader" class="d-flex justify-content-center mt-5">
+            <div class="lds-default"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+        </div>
+
+        <div id="home" class="row d-none">
+        </div>
         <div id="live-reports" class="d-none justify-content-center">
 
         </div>
-        <div id="about" class="d-none"></div>
+        <div id="about" class="d-none justify-content-center align-items-start">
+            <div class="card border border-primary">
+                <div class="row no-gutters">
+                    <div class="col-md-4 d-flex justify-content-center align-items-center">
+                        <img src="./img/ido.jpg" class="card-img">
+                    </div>
+                    <div class="col-md-8">
+                        <div class="card-body">
+                            <h5 class="card-title"><strong>Ido Galili</strong></h5>
+                            <p class="card-text">
+                                I'm married to Yael and father to two adorable kids, Omri and Carmel,<br>
+                                and lives at Kfar Giladi.<br>
+                                I'm enthusiast about coding and loves being outdoor.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </section>
 </div>
 
@@ -66,7 +88,7 @@
 <div class="modal fade" id="chosenCoinsModal" tabindex="-1" role="dialog" aria-labelledby="chosenCoinsModalTitle"
      aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content">
+        <div class="modal-content border border-primary">
             <div class="modal-header">
                 <h5 class="modal-title" id="exampleModalLongTitle">Chosen Coins</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -76,7 +98,7 @@
             <div class="modal-body"></div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-danger" data-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-info">Live Reports</button>
+                <button type="button" class="btn btn-primary" id="live-reports-modal-button">Live Reports</button>
             </div>
         </div>
     </div>
